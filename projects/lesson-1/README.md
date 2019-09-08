@@ -21,7 +21,7 @@ curl https://raw.githubusercontent.com/paritytech/substrate-up/4f3d476d2271a1cae
 
 
 
-#三 初始化项目
+# 三 初始化项目
 
 cd sustrate-dev-node
 
@@ -62,11 +62,11 @@ WASM_BUILD_TYPE=release cargo run -- --dev
 
 
 
-## 2 交易成功，
+## 2 交易成功
 
 ![1567948968955](assets/1567948968955.png)
 
-##  
+ 
 
 ## 3 包含交易的区块详细资料
 
