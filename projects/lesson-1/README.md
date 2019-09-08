@@ -25,6 +25,10 @@ curl https://raw.githubusercontent.com/paritytech/substrate-up/4f3d476d2271a1cae
 
 cd sustrate-dev-node
 
+ls
+
+![1567949194332](assets/1567949194332.png)
+
 
 
 //初始化wasm构建环境
