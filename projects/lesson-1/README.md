@@ -16,3 +16,4 @@
 		* 确认交易
         ![](img/balance.png)
 		* 查看交易信息
+		![](img/tx.png)
