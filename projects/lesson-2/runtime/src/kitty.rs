@@ -16,7 +16,8 @@ use codec::{Encode, Decode};
 #[derive(Debug, Encode, Decode, Default, Clone, PartialEq)]
 pub struct Kitty<Hash, Balance> {
     id: Hash,
-    dna: Hash,
+    // dna: Hash,
+    dna: u128,
     price: Balance,
     gen: u64,
 }
@@ -50,7 +51,7 @@ decl_storage! {
         OwnedKittiesCount get(owned_kitty_count): map T::AccountId => u64;
 		// kitty hash => index under owner
         OwnedKittiesIndex: map T::Hash => u64;
-        Nonce: u64;
+        Nonce: u128;
 	}
 }
 
@@ -83,7 +84,7 @@ decl_module! {
 
             let new_kitty = Kitty {
                 id: random_hash,
-                dna: random_hash,
+                dna: nonce,
                 price: 0.into(),
                 gen: 0,
             };
