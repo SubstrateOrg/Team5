@@ -64,6 +64,8 @@ pub type DigestItem = generic::DigestItem<Hash>;
 /// Used for the module template in `./template.rs`
 mod template;
 
+mod substratekitties;
+
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
@@ -94,8 +96,8 @@ pub mod opaque {
 
 /// This runtime version.
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("substrate-kitties"),
-	impl_name: create_runtime_str!("substrate-kitties"),
+	spec_name: create_runtime_str!("kitties-substrate"),
+	impl_name: create_runtime_str!("kitties-substrate"),
 	authoring_version: 3,
 	spec_version: 4,
 	impl_version: 4,
@@ -235,6 +237,7 @@ impl balances::Trait for Runtime {
 	type OnNewAccount = Indices;
 	/// The ubiquitous event type.
 	type Event = Event;
+
 	type TransactionPayment = ();
 	type DustRemoval = ();
 	type TransferPayment = ();
@@ -250,6 +253,8 @@ impl sudo::Trait for Runtime {
 	type Event = Event;
 	type Proposal = Call;
 }
+
+impl substratekitties::Trait for Runtime {}
 
 /// Used for the module template in `./template.rs`
 impl template::Trait for Runtime {
@@ -267,10 +272,12 @@ construct_runtime!(
 		Babe: babe::{Module, Call, Storage, Config, Inherent(Timestamp)},
 		Grandpa: grandpa::{Module, Call, Storage, Config, Event},
 		Indices: indices::{default, Config<T>},
-		Balances: balances::{default, Error},
+		Balances: balances,
 		Sudo: sudo,
 		// Used for the module template in `./template.rs`
 		TemplateModule: template::{Module, Call, Storage, Event<T>},
+
+		Substratekitties: substratekitties::{Module, Call, Storage},
 	}
 );
 
