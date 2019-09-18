@@ -8,11 +8,21 @@
 /// For more guidance on Substrate modules, see the example module
 /// https://github.com/paritytech/substrate/blob/master/srml/example/src/lib.rs
 
-use support::{decl_module, decl_storage, decl_event, StorageValue, dispatch::Result};
+use support::{decl_storage, decl_module, StorageValue, StorageMap, dispatch::Result, ensure, decl_event};
 use system::ensure_signed;
+use sr_primitives::traits::Hash;
+use codec::{Encode, Decode};
+
+#[derive(Debug, Encode, Decode, Default, Clone, PartialEq)]
+pub struct Kitty<Hash, Balance> {
+    id: Hash,
+    dna: Hash,
+    price: Balance,
+    gen: u64,
+}
 
 /// The module's configuration trait.
-pub trait Trait: system::Trait {
+pub trait Trait: balances::Trait {
 	// TODO: Add other types and constants required configure this module.
 
 	/// The overarching event type.
@@ -25,7 +35,22 @@ decl_storage! {
 		// Just a dummy storage item.
 		// Here we are declaring a StorageValue, `Something` as a Option<u32>
 		// `get(something)` is the default getter which returns either the stored `u32` or `None` if nothing stored
-		Something get(something): Option<u32>;
+		Kitties get(kitty): map T::Hash => Kitty<T::Hash, T::Balance>;
+        KittyOwner get(owner_of): map T::Hash => Option<T::AccountId>;
+		// OwnedKitty get(kitty_of_owner): map T::AccountId => T::Hash;
+		// index => kitty hash
+		AllKittiesArray get(kitty_by_index): map u64 => T::Hash;
+		// count of kitties
+        AllKittiesCount get(all_kitties_count): u64;
+		// kitty hash => index
+        AllKittiesIndex: map T::Hash => u64;
+		// (owner account, index) => kitty hash
+        OwnedKittiesArray get(kitty_of_owner_by_index): map (T::AccountId, u64) => T::Hash;
+		// owner account => kitty count
+        OwnedKittiesCount get(owned_kitty_count): map T::AccountId => u64;
+		// kitty hash => index under owner
+        OwnedKittiesIndex: map T::Hash => u64;
+        Nonce: u64;
 	}
 }
 
@@ -37,30 +62,62 @@ decl_module! {
 		// this is needed only if you are using events in your module
 		fn deposit_event() = default;
 
-		// Just a dummy entry point.
-		// function that can be called by the external world as an extrinsics call
-		// takes a parameter of the type `AccountId`, stores it and emits an event
-		pub fn do_something(origin, something: u32) -> Result {
-			// TODO: You only need this if you want to check it was signed.
-			let who = ensure_signed(origin)?;
+		pub fn create_kitty(origin) -> Result {
+			let sender = ensure_signed(origin)?;
 
-			// TODO: Code to execute when something calls this.
-			// For example: the following line stores the passed in u32 in the storage
-			Something::put(something);
+            let owned_kitty_count = Self::owned_kitty_count(&sender);
 
-			// here we are raising the Something event
-			Self::deposit_event(RawEvent::SomethingStored(something, who));
-			Ok(())
+            let new_owned_kitty_count = owned_kitty_count.checked_add(1)
+                .ok_or("Overflow adding a new kitty to account balance")?;
+
+            let all_kitties_count = Self::all_kitties_count();
+
+            let new_all_kitties_count = all_kitties_count.checked_add(1)
+                .ok_or("Overflow adding a new kitty to total supply")?;
+
+            let nonce = Nonce::get();
+            let random_hash = (<system::Module<T>>::random_seed(), &sender, nonce)
+                .using_encoded(<T as system::Trait>::Hashing::hash);
+
+            ensure!(!<KittyOwner<T>>::exists(random_hash), "Kitty already exists");
+
+            let new_kitty = Kitty {
+                id: random_hash,
+                dna: random_hash,
+                price: 0.into(),
+                gen: 0,
+            };
+
+            <Kitties<T>>::insert(random_hash, new_kitty);
+            <KittyOwner<T>>::insert(random_hash, &sender);
+
+            <AllKittiesArray<T>>::insert(all_kitties_count, random_hash);
+            AllKittiesCount::put(new_all_kitties_count);
+            <AllKittiesIndex<T>>::insert(random_hash, all_kitties_count);
+
+            <OwnedKittiesArray<T>>::insert((sender.clone(), owned_kitty_count), random_hash);
+            <OwnedKittiesCount<T>>::insert(&sender, new_owned_kitty_count);
+            <OwnedKittiesIndex<T>>::insert(random_hash, owned_kitty_count);
+
+            Nonce::mutate(|n| *n += 1);
+
+
+            Self::deposit_event(RawEvent::Created(sender, random_hash));
+
+            Ok(())
 		}
 	}
 }
 
 decl_event!(
-	pub enum Event<T> where AccountId = <T as system::Trait>::AccountId {
+	pub enum Event<T> where 
+	 <T as system::Trait>::AccountId,
+	 <T as system::Trait>::Hash
+	{
 		// Just a dummy event.
 		// Event `Something` is declared with a parameter of the type `u32` and `AccountId`
 		// To emit this event, we call the deposit funtion, from our runtime funtions
-		SomethingStored(u32, AccountId),
+		Created(AccountId, Hash),
 	}
 );
 
@@ -123,11 +180,7 @@ mod tests {
 	#[test]
 	fn it_works_for_default_value() {
 		with_externalities(&mut new_test_ext(), || {
-			// Just a dummy test for the dummy funtion `do_something`
-			// calling the `do_something` function with a value 42
-			assert_ok!(TemplateModule::do_something(Origin::signed(1), 42));
-			// asserting that the stored value is equal to what we stored
-			assert_eq!(TemplateModule::something(), Some(42));
+			
 		});
 	}
 }
