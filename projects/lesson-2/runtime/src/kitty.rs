@@ -12,6 +12,10 @@ use support::{decl_storage, decl_module, StorageValue, StorageMap, dispatch::Res
 use system::ensure_signed;
 use sr_primitives::traits::Hash;
 use codec::{Encode, Decode};
+// use std::convert::TryInto;
+use byteorder::{ByteOrder, LittleEndian};
+
+
 
 #[derive(Debug, Encode, Decode, Default, Clone, PartialEq)]
 pub struct Kitty<Hash, Balance> {
@@ -77,14 +81,16 @@ decl_module! {
                 .ok_or("Overflow adding a new kitty to total supply")?;
 
             let nonce = Nonce::get();
-            let random_hash = (<system::Module<T>>::random_seed(), &sender, nonce)
-                .using_encoded(<T as system::Trait>::Hashing::hash);
+            // let dna_hash:u128 = (<system::Module<T>>::random_seed(), &sender, nonce).using_encoded(|encoded| LittleEndian::read_u128(&encoded[0..16]));
+            let random_hash = (<system::Module<T>>::random_seed(), &sender, nonce).using_encoded(<T as system::Trait>::Hashing::hash);
+			let _dna_hash_array = random_hash.as_ref();
+			let dna_hash = LittleEndian::read_u128(&_dna_hash_array[0..16]);
 
             ensure!(!<KittyOwner<T>>::exists(random_hash), "Kitty already exists");
 
             let new_kitty = Kitty {
                 id: random_hash,
-                dna: nonce,
+                dna: dna_hash,
                 price: 0.into(),
                 gen: 0,
             };
