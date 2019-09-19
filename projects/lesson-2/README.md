@@ -68,3 +68,24 @@ cargo run -- \
 ```
 
 Additional CLI usage options are available and may be shown by running `cargo run -- --help`.
+
+![1568867998279](assets/1568867998279.png)
+
+
+
+![1568868100714](assets/1568868100714.png)
+
+
+
+
+
+进入区块浏览器  https://polkadot.js.org/apps/#/extrinsics
+
+选择加密猫模块，执行createKitty()
+
+![1568868610027](assets/1568868610027.png)
+
+![1568868653438](assets/1568868653438.png)
+
+
+
