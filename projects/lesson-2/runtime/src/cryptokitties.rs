@@ -8,11 +8,22 @@
 /// For more guidance on Substrate modules, see the example module
 /// https://github.com/paritytech/substrate/blob/master/srml/example/src/lib.rs
 
-use support::{decl_module, decl_storage, decl_event, StorageValue, dispatch::Result};
+use support::{decl_module, decl_storage, decl_event, StorageValue,ensure,StorageMap,dispatch::Result};
 use system::ensure_signed;
+use sr_primitives::traits::Hash;
+use codec::{Encode, Decode};
+use byteorder::{ByteOrder, LittleEndian};
+
+#[derive(Debug, Encode, Decode, Default, Clone, PartialEq)]
+pub struct Kitty<Hash,Balance>{
+    id:Hash,
+    dna:u128,
+    price:Balance,
+    gen:u64,
+}
 
 /// The module's configuration trait.
-pub trait Trait: system::Trait {
+pub trait Trait: balances::Trait {
 	// TODO: Add other types and constants required configure this module.
 
 	/// The overarching event type.
@@ -21,11 +32,12 @@ pub trait Trait: system::Trait {
 
 // This module's storage items.
 decl_storage! {
-	trait Store for Module<T: Trait> as TemplateModule {
+	trait Store for Module<T: Trait> as KittyModule {
 		// Just a dummy storage item.
 		// Here we are declaring a StorageValue, `Something` as a Option<u32>
 		// `get(something)` is the default getter which returns either the stored `u32` or `None` if nothing stored
 		Something get(something): Option<u32>;
+        OwnedKitties get(kitty_owner): map T::AccountId => Kitty<T::Hash, T::Balance>;
 	}
 }
 
@@ -52,6 +64,21 @@ decl_module! {
 			Self::deposit_event(RawEvent::SomethingStored(something, who));
 			Ok(())
 		}
+
+        pub fn create_kitty(origin) -> Result {
+            let sender = ensure_signed(origin)?;
+
+            let new_kitty = Kitty {
+                id: <T as system::Trait>::Hashing::hash_of(&0),
+                dna: 0,
+                price: 0.into(),
+                gen: 0,
+            };
+
+            <OwnedKitties<T>>::insert(&sender, new_kitty);
+
+            Ok(())
+        }
 	}
 }
 
