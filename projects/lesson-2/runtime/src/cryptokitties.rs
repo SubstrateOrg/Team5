@@ -46,9 +46,10 @@ decl_storage! {
         Nonce:u64;
 
         //using map to simulating the array storage
-        //AllKittiesArray get(kitty_by_index): map u64 => T::Hash;
+        AllKittiesArray get(kitty_by_index): map u64 => T::Hash;
         // counter of all kitties
-        //AllKittiesCounter get(all_kitties_count): u64;
+        AllKittiesCounter get(all_kitties_count): u64;
+        AllKittiesIndex: map T::Hash => u64;
 	}
 }
 
@@ -79,6 +80,13 @@ decl_module! {
         pub fn create_kitty(origin) -> Result {
             let sender = ensure_signed(origin)?;
 
+            // get lastest kitties count
+            let all_kitties_count = Self::all_kitties_count();
+
+            // using safe math alike method to add count safely
+            let new_all_kitties_count = all_kitties_count.checked_add(1)
+            .ok_or("Overflow adding a new kitty to total supply")?;
+
             // get current nonce as seed
             let nonce = <Nonce<T>>::get();
             
@@ -89,13 +97,6 @@ decl_module! {
             //checking
             ensure!(!<KittyOwner<T>>::exists(random_hash), "Kitty already exists");
 
-            // get lastest kitties count
-            //let all_kitties_count = Self::all_kitties_count();
-
-            // using safe math alike method to add count safely
-            //let new_all_kitties_count = all_kitties_count.checked_add(1)
-            //.ok_or("Overflow adding a new kitty to total supply")?;
-
             let new_kitty = Kitty {
                 id: <T as system::Trait>::Hashing::hash_of(&0),
                 dna: 0,
@@ -104,11 +105,17 @@ decl_module! {
             };
 
 
-            //<AllKittiesArray<T>>::insert();
+            <AllKittiesArray<T>>::insert();
             // generating the new kitty
             <Kitty<T>>::insert(random_hash,new_kitty);
             // binding sender to the kitty hash
             <KittyOwner<T>>insert(random_hash,&sender);
+
+            // kitties count + 1
+            <AllKittiesArray<T>>::insert(all_kitties_count,random_hash);
+            <AllKittiesCounter<T>>::put(new_all_kitties_count);
+            <AllKittiesIndex<T>>::insert(random_hash,all_kitties_count);
+
             <OwnedKitties<T>>::insert(&sender, new_kitty);
 
             <Nonce<T>>::mutate(|n| *n += 1);
