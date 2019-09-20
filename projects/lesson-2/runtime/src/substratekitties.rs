@@ -1,15 +1,15 @@
-use support::{decl_storage, decl_module, StorageValue, StorageMap,
-              dispatch::Result, ensure, decl_event};
+use support::{decl_storage, decl_module, decl_event, StorageValue, StorageMap,
+              dispatch::Result, ensure};
 use system::ensure_signed;
 use sr_primitives::traits::Hash;
 use codec::{Encode, Decode};
 use runtime_io::blake2_128;
 
-#[derive(Encode, Decode, Default, Clone)]
-pub struct Kitty<Hash, Balance> {
+#[derive(Encode, Decode, Default, Clone, PartialEq)]
+pub struct Kitty<Hash> {
     id: Hash,
-    dna: u128,
-    price: Balance,
+    dna: [u8; 16],
+//    price: Balance,
     gen: u64,
 }
 
@@ -21,7 +21,7 @@ pub trait Trait: balances::Trait {
 
 decl_storage! {
     trait Store for Module<T: Trait> as KittyStorage {
-        Kitties get(kitty): map T::Hash => Kitty<T::Hash, T::Balance>;
+        Kitties get(kitty): map T::Hash => Kitty<T::Hash>;
         KittyOwner get(owner_of): map T::Hash => Option<T::AccountId>;
 
         AllKittiesArray get(kitty_by_index): map u64 => T::Hash;
@@ -39,7 +39,7 @@ decl_storage! {
 decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 
-        //fn deposit_event<T>() = default;
+        fn deposit_event() = default;
 
         fn create_kitty(origin) -> Result {
             let sender = ensure_signed(origin)?;
@@ -57,15 +57,13 @@ decl_module! {
                 .ok_or("Overflow adding a new kitty to total supply")?;
 
             // `nonce` and `random_hash` generation can stay here
-            let nonce = <Nonce<T>>::get();
+            let nonce = Nonce::get();
             let random_hash = (<system::Module<T>>::random_seed(), &sender, nonce)
                 .using_encoded(<T as system::Trait>::Hashing::hash);
 
-            //lishenng
-//            let _dna_hash_array = random_hash.as_ref();
-//			let dna_hash = LittleEndian::read_u128(&_dna_hash_array[0..16]);
 
-			let _dna_hash = (<system::Module<T>>::random_seed(), sender, <system::Module<T>>::extrinsic_index(), <system::Module<T>>::block_number());
+
+			let _dna_hash = (<system::Module<T>>::random_seed(), &sender, <system::Module<T>>::extrinsic_index(), <system::Module<T>>::block_number());
 			let dna_hash = _dna_hash.using_encoded(blake2_128);
             // ACTION: Move this collision check to the `mint()` function
             ensure!(!<KittyOwner<T>>::exists(random_hash), "Kitty already exists");
@@ -74,7 +72,7 @@ decl_module! {
             let new_kitty = Kitty {
                 id: random_hash,
                 dna: dna_hash,
-                price: <T::Balance >::sa(0),
+//                price: <T::Balance >::sa(0),
                 gen: 0,
             };
 
@@ -83,7 +81,7 @@ decl_module! {
             <KittyOwner<T>>::insert(random_hash, &sender);
 
             <AllKittiesArray<T>>::insert(all_kitties_count, random_hash);
-            <AllKittiesCount<T>>::put(new_all_kitties_count);
+            <AllKittiesCount>::put(new_all_kitties_count);
             <AllKittiesIndex<T>>::insert(random_hash, all_kitties_count);
 
             <OwnedKittiesArray<T>>::insert((sender.clone(), owned_kitty_count), random_hash);
@@ -91,7 +89,7 @@ decl_module! {
             <OwnedKittiesIndex<T>>::insert(random_hash, owned_kitty_count);
 
             // Nonce update can stay here
-            <Nonce<T>>::mutate(|n| *n += 1);
+            <Nonce>::mutate(|n| *n += 1);
 
             // ACTION: Move this event to the `mint()` function
             Self::deposit_event(RawEvent::Created(sender, random_hash));
@@ -101,8 +99,10 @@ decl_module! {
     }
 }
 
+
+
 decl_event!(
-	pub enum Event<T>
+    pub enum Event<T>
     where
         <T as system::Trait>::AccountId,
         <T as system::Trait>::Hash

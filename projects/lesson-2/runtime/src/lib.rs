@@ -258,7 +258,9 @@ impl template::Trait for Runtime {
 	type Event = Event;
 }
 
-impl substratekitties::Trait for Runtime {}
+impl substratekitties::Trait for Runtime {
+	type Event = Event;
+}
 
 construct_runtime!(
 	pub enum Runtime where
@@ -276,7 +278,7 @@ construct_runtime!(
 		// Used for the module template in `./template.rs`
 		TemplateModule: template::{Module, Call, Storage, Event<T>},
 
-		Substratekitties: substratekitties::{Module, Call, Storage},
+		Substratekitties: substratekitties::{Module, Call, Storage, Event<T>},
 	}
 );
 
