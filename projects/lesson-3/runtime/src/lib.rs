@@ -62,7 +62,7 @@ pub type Hash = primitives::H256;
 pub type DigestItem = generic::DigestItem<Hash>;
 
 /// Used for the module template in `./template.rs`
-mod template;
+// mod template;
 
 /// Used for the module kitties in `./kitties.rs`
 mod kitties;
@@ -255,9 +255,9 @@ impl sudo::Trait for Runtime {
 }
 
 /// Used for the module template in `./template.rs`
-impl template::Trait for Runtime {
-	type Event = Event;
-}
+// impl template::Trait for Runtime {
+// 	type Event = Event;
+// }
 
 impl kitties::Trait for Runtime {
 }
@@ -276,7 +276,7 @@ construct_runtime!(
 		Balances: balances::{default, Error},
 		Sudo: sudo,
 		// Used for the module template in `./template.rs`
-		TemplateModule: template::{Module, Call, Storage, Event<T>},
+		// TemplateModule: template::{Module, Call, Storage, Event<T>},
 		// Substrate Kitties module
 		Kitties: kitties::{Module, Storage, Call},
 	}
