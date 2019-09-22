@@ -34,13 +34,13 @@ decl_module! {
 		}
 
         /// Breed a kitty
-        pub fn breed(origin, dna1: u32, dna2: u32) {
+        pub fn breed(origin, index1: u32, index2: u32) {
    			let sender = ensure_signed(origin)?;
    			let count = Self::kitties_count();
 			let new_count = count.checked_add(1).ok_or("Kitties count overflow")?;
 
-            let kitty_1 = Self::kitty(dna1);
-            let kitty_2 = Self::kitty(dna2);
+            let kitty_1 = Self::kitty(index1);
+            let kitty_2 = Self::kitty(index2);
 
             let payload = (<system::Module<T>>::random_seed(), sender,
 			    <system::Module<T>>::extrinsic_index(), <system::Module<T>>::block_number());
