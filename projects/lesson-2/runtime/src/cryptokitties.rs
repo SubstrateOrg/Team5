@@ -12,7 +12,7 @@ use support::{decl_module, decl_storage, decl_event, StorageValue,ensure,Storage
 use system::ensure_signed;
 use sr_primitives::traits::Hash;
 use codec::{Encode, Decode};
-use byteorder::{ByteOrder, LittleEndian};
+//use byteorder::{ByteOrder, LittleEndian};
 
 #[derive(Debug, Encode, Decode, Default, Clone, PartialEq)]
 pub struct Kitty<Hash,Balance>{
@@ -41,7 +41,7 @@ decl_storage! {
         //using map to store kitties
         OwnedKitties get(kitty_owner): map T::AccountId => Kitty<T::Hash, T::Balance>;
         KittyOwner get(owner_of): map T::Hash => Option<T::AccountId>;
-        Kitties get(kitty): map T::Hash => Kitty<T:Hash,T::Balance>;
+        Kitties get(kitty): map T::Hash => Kitty<T::Hash, T::Balance>;
 
         Nonce:u64;
 
@@ -105,11 +105,11 @@ decl_module! {
             };
 
 
-            <AllKittiesArray<T>>::insert();
+            <AllKittiesArray<T>>::insert(all_kitties_count,random_hash);
             // generating the new kitty
             <Kitty<T>>::insert(random_hash,new_kitty);
             // binding sender to the kitty hash
-            <KittyOwner<T>>insert(random_hash,&sender);
+            <KittyOwner<T>>::insert(random_hash,&sender);
 
             // kitties count + 1
             <AllKittiesArray<T>>::insert(all_kitties_count,random_hash);
