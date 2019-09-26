@@ -1,5 +1,5 @@
 use support::{decl_module, decl_storage, ensure, StorageValue, StorageMap, dispatch::Result, Parameter};
-use sr_primitives::traits::{SimpleArithmetic, Bounded};
+use sr_primitives::traits::{SimpleArithmetic, Bounded, CheckedAdd, CheckedSub};
 use codec::{Encode, Decode};
 use runtime_io::blake2_128;
 use system::ensure_signed;
@@ -40,7 +40,7 @@ decl_module! {
 			let sender = ensure_signed(origin)?;
 
 			// using internal method to create a new kitty
-			Self::create_kitty(sender);
+			Self::create_kitty(sender)
 		}
 
 		/// Breed kitties
@@ -48,6 +48,17 @@ decl_module! {
 			let sender = ensure_signed(origin)?;
 
 			Self::do_breed(sender, kitty_id_1, kitty_id_2)?;
+		}
+
+		pub fn transfer_kitty(origin, T::Account, kitty_id: T::KittyIndex) -> Result {
+			let sender = ensure_signed(origin)?;
+
+			let owner = Self::owner_of(kitty_id).ok_or("Owner of this kitty not found.")?;
+
+			//check msg sender is the kitty owner
+			ensure!(owner == sender,"Kitty owner invalid.");
+
+			Self::transfer_kitty(sender,to,kitty_id)
 		}
 	}
 }
@@ -132,6 +143,51 @@ impl<T: Trait> Module<T> {
 
 		Self::insert_kitty(sender, kitty_id, Kitty(new_dna));
 
+		Ok(())
+	}
+
+	fn transfer_kitty(from: T::AccountId, to: T::AccountId, kitty_id: T::KittyIndex) -> Result {
+		
+		// check kitty owner 
+		let owner = Self::owner_of(kitty_id).ok_or("Kitty Owner Invalid.")?;
+		
+		// check from account
+		ensure!(owner == from,"from account is not the owner.");
+
+		// get count from 'from' and 'to' account for calc
+		let from_account_owned_kitties = Self::owned_kitties_count(&from);
+		let to_account_owned_kitties = Self::owned_kitties_count(&to);
+
+		// safe minus one for 'from' account owned index
+		let new_from_account_owned_kitties = from_account_owned_kitties.checked_sub(1)
+			.ok_or("transfer error of 'from' account.");
+
+		// safe add one for 'to' account owned index
+		let new_to_account_owned_kitties = from_account_owned_kitties.checked_add(1)
+			.ok_or("transfer error of 'to' account.");
+
+		// get kitty index 
+		let kitty_index = <OwnedKittiesIndex<T>>::get(kitty_id);
+
+		if kitty_index != new_from_account_owned_kitties {
+			let last_kitty_id = <OwnedKitties<T>>::get((from.clone(),new_from_account_owned_kitties));
+			<OwnedKitties<T>>::insert((from.clone(),kitty_index),last_kitty_id);
+			<OwnedKittiesIndex<T>>::insert(last_kitty_id,kitty_index);
+		}
+		
+		// change kitty ownership
+		<KittyOwner<T>>::insert(&kitty_id,&to);
+		<OwnedKittiesIndex<T>>::insert(kitty_id,to_account_owned_kitties);
+		
+		// change kitty ownership
+		<OwnedKitties<T>>::remove((from.clone(),new_from_account_owned_kitties));
+		<OwnedKitties<T>>::insert((to.clone(),to_account_owned_kitties),kitty_id);
+
+		// change owner kitties counter
+		<OwnedKittiesCount<T>>::insert(&from,new_from_account_owned_kitties);
+		<OwnedKittiesCount<T>>::insert(&to,new_to_account_owned_kitties);
+
+		// done
 		Ok(())
 	}
 }
