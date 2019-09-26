@@ -20,7 +20,7 @@ decl_storage! {
 		pub KittiesCount get(kitties_count): T::KittyIndex;
 
 		/// Get kitty ID by account ID and user kitty index
-		pub OwnedKitties get(owned_kitties): map (T::AccountId, T::KittyIndex) => T::KittyIndex;
+		pub OwnedKitties get(owned_kitties): map (T::AccountId, T::KittyIndex) => Option<T::KittyIndex>;
 		/// Get number of kitties by account ID
 		pub OwnedKittiesCount get(owned_kitties_count): map T::AccountId => T::KittyIndex;
 	}
@@ -34,24 +34,27 @@ decl_module! {
 
 			// 作业：重构create方法，避免重复代码
 
-			let kitty_id = Self::kitties_count();
-			if kitty_id == T::KittyIndex::max_value() {
-				return Err("Kitties count overflow");
-			}
+//			let kitty_id = Self::kitties_count();
+//			if kitty_id == T::KittyIndex::max_value() {
+//				return Err("Kitties count overflow");
+//			}
+			let kitty_id = Self::next_kitty_id()?;
 
 			// Generate a random 128bit value
-			let payload = (<system::Module<T>>::random_seed(), &sender, <system::Module<T>>::extrinsic_index(), <system::Module<T>>::block_number());
-			let dna = payload.using_encoded(blake2_128);
+//			let payload = (<system::Module<T>>::random_seed(), &sender, <system::Module<T>>::extrinsic_index(), <system::Module<T>>::block_number());
+//			let dna = payload.using_encoded(blake2_128);
+			let dna = Self::random_value(&sender);
 
 			// Create and store kitty
 			let kitty = Kitty(dna);
-			<Kitties<T>>::insert(kitty_id, kitty);
-			<KittiesCount<T>>::put(kitty_id + 1.into());
-
-			// Store the ownership information
-			let user_kitties_id = Self::owned_kitties_count(&sender);
-			<OwnedKitties<T>>::insert((sender.clone(), user_kitties_id), kitty_id);
-			<OwnedKittiesCount<T>>::insert(sender, user_kitties_id + 1.into());
+//			<Kitties<T>>::insert(kitty_id, kitty);
+//			<KittiesCount<T>>::put(kitty_id + 1.into());
+//
+//			// Store the ownership information
+//			let user_kitties_id = Self::owned_kitties_count(&sender);
+//			<OwnedKitties<T>>::insert((sender.clone(), user_kitties_id), kitty_id);
+//			<OwnedKittiesCount<T>>::insert(sender, user_kitties_id + 1.into());
+			Self::insert_kitty(sender,kitty_id,kitty)
 		}
 
 		/// Breed kitties
@@ -60,8 +63,30 @@ decl_module! {
 
 			Self::do_breed(sender, kitty_id_1, kitty_id_2)?;
 		}
+
+		//Transfer
+        fn transfer(origin, to: T::AccountId, kitty_id: T::KittyIndex) -> Result {
+            let from = ensure_signed(origin)?;
+
+			//1 -转移不能同一个人
+			ensure!(from != to, "from and to needs different");
+
+			//2 - 判断index是否有效
+			let kitty = Self::kitty(kitty_id);
+
+			ensure!(kitty.is_some(), "Invalid kitty_id");
+
+			//3 - 判断转出者是否拥有kittyindex这只猫
+			let kitty_owner = Self::owned_kitties((from.clone(),kitty_id));
+			ensure!(kitty_owner.is_some(), "Invalid kitty_id");
+
+            Self::transfer_from(from, to, kitty_id)?;
+
+            Ok(())
+        }
 	}
 }
+
 
 fn combine_dna(dna1: u8, dna2: u8, selector: u8) -> u8 {
 	// 作业：实现combine_dna
@@ -73,6 +98,7 @@ fn combine_dna(dna1: u8, dna2: u8, selector: u8) -> u8 {
 }
 
 impl<T: Trait> Module<T> {
+
 	fn random_value(sender: &T::AccountId) -> [u8; 16] {
 		let payload = (<system::Module<T>>::random_seed(), sender, <system::Module<T>>::extrinsic_index(), <system::Module<T>>::block_number());
 		payload.using_encoded(blake2_128)
@@ -123,4 +149,29 @@ impl<T: Trait> Module<T> {
 
 		Ok(())
 	}
+
+	//transfer
+	//转出者，接收者，kittyindex
+	pub fn transfer_from(from: T::AccountId ,to: T::AccountId , kitty_id_index: T::KittyIndex) -> Result {
+
+		//OwnedKittiesCount
+		//获取转出所有者kitty的数量并且减一
+		//获取转入所有者kitty的数量并且减一
+		let from_kitty_count = Self::owned_kitties_count(from.clone());
+		let to_kitty_count = Self::owned_kitties_count(to.clone());
+
+		let new_from_kitty_count = from_kitty_count - 1.into();
+		<OwnedKittiesCount<T>>::insert(from.clone(),from_kitty_count);
+
+		let new_to_kitty_count = to_kitty_count + 1.into();
+		<OwnedKittiesCount<T>>::insert(to.clone(),new_to_kitty_count);
+
+//		OwnedKitties操作
+		<OwnedKitties<T>>::remove((from,kitty_id_index));
+		<OwnedKitties<T>>::insert((to,kitty_id_index),kitty_id_index);
+		//OwnedKittiesCount操作
+
+		Ok(())
+	}
+
 }
