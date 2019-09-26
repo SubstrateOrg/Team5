@@ -170,7 +170,6 @@ impl<T: Trait> Module<T> {
 		<OwnedKitties<T>>::remove((from,kitty_id_index));
 		<OwnedKitties<T>>::insert((to,kitty_id_index),kitty_id_index);
 		//OwnedKittiesCount操作
-
 		Ok(())
 	}
 
