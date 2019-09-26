@@ -19,6 +19,8 @@ decl_storage! {
 		/// Stores the total number of kitties. i.e. the next kitty index
 		pub KittiesCount get(kitties_count): T::KittyIndex;
 
+		/// Get Kitty Owner Account by Kitty ID 
+		pub KittyOwner get(owner_of): map T::KittyIndex => Option<T::AccountId>;
 		/// Get kitty ID by account ID and user kitty index
 		pub OwnedKitties get(owned_kitties): map (T::AccountId, T::KittyIndex) => T::KittyIndex;
 		/// Get number of kitties by account ID
@@ -29,29 +31,14 @@ decl_storage! {
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		/// Create a new kitty
+		/// 作业：重构create方法，避免重复代码
 		pub fn create(origin) {
+
+			// check msg sender
 			let sender = ensure_signed(origin)?;
 
-			// 作业：重构create方法，避免重复代码
-
-			let kitty_id = Self::kitties_count();
-			if kitty_id == T::KittyIndex::max_value() {
-				return Err("Kitties count overflow");
-			}
-
-			// Generate a random 128bit value
-			let payload = (<system::Module<T>>::random_seed(), &sender, <system::Module<T>>::extrinsic_index(), <system::Module<T>>::block_number());
-			let dna = payload.using_encoded(blake2_128);
-
-			// Create and store kitty
-			let kitty = Kitty(dna);
-			<Kitties<T>>::insert(kitty_id, kitty);
-			<KittiesCount<T>>::put(kitty_id + 1.into());
-
-			// Store the ownership information
-			let user_kitties_id = Self::owned_kitties_count(&sender);
-			<OwnedKitties<T>>::insert((sender.clone(), user_kitties_id), kitty_id);
-			<OwnedKittiesCount<T>>::insert(sender, user_kitties_id + 1.into());
+			// using internal method to create a new kitty
+			Self::create_kitty(sender);
 		}
 
 		/// Breed kitties
@@ -73,6 +60,25 @@ fn combine_dna(dna1: u8, dna2: u8, selector: u8) -> u8 {
 }
 
 impl<T: Trait> Module<T> {
+	
+	//using internal method to create kitties
+	fn create_kitty(owner: T::AccountId) -> Result {
+
+		// get new kitty id
+		let new_kitty_id = Self::next_kitty_id()?;
+
+		// using internal method to generate random DNA
+		let dna = Self::random_value(&owner);
+
+		// construct the new kitty
+		let new_kitty = Kitty(dna);
+
+		// using internal method to add the new kitty
+		Self::insert_kitty(owner.clone(),new_kitty_id,new_kitty);
+
+		Ok(())
+	}
+
 	fn random_value(sender: &T::AccountId) -> [u8; 16] {
 		let payload = (<system::Module<T>>::random_seed(), sender, <system::Module<T>>::extrinsic_index(), <system::Module<T>>::block_number());
 		payload.using_encoded(blake2_128)
