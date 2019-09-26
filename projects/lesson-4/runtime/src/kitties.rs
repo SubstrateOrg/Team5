@@ -25,6 +25,8 @@ decl_storage! {
 		pub OwnedKitties get(owned_kitties): map (T::AccountId, T::KittyIndex) => T::KittyIndex;
 		/// Get number of kitties by account ID
 		pub OwnedKittiesCount get(owned_kitties_count): map T::AccountId => T::KittyIndex;
+		/// Get user's kitty ID from kitty ID
+		pub OwnedKittiesIndex: map T::KittyIndex => T::KittyIndex;
 	}
 }
 
@@ -100,7 +102,10 @@ impl<T: Trait> Module<T> {
 		// Store the ownership information
 		let user_kitties_id = Self::owned_kitties_count(owner.clone());
 		<OwnedKitties<T>>::insert((owner.clone(), user_kitties_id), kitty_id);
-		<OwnedKittiesCount<T>>::insert(owner, user_kitties_id + 1.into());
+		<OwnedKittiesCount<T>>::insert(owner.clone(), user_kitties_id + 1.into());
+		
+		<OwnedKittiesIndex<T>>::insert(kitty_id, user_kitties_id);
+		<KittyOwner<T>>::insert(kitty_id, owner.clone());
 	}
 
 	fn do_breed(sender: T::AccountId, kitty_id_1: T::KittyIndex, kitty_id_2: T::KittyIndex) -> Result {
