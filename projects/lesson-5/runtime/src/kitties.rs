@@ -1,4 +1,4 @@
-use support::{decl_module, decl_storage, ensure, StorageValue, StorageMap, dispatch::Result, Parameter};
+use support::{decl_module, decl_storage, ensure, StorageValue, StorageMap, dispatch::Result, Parameter, traits::Currency};
 use sr_primitives::traits::{SimpleArithmetic, Bounded, Member};
 use codec::{Encode, Decode};
 use runtime_io::blake2_128;
@@ -7,6 +7,7 @@ use rstd::result;
 
 pub trait Trait: system::Trait {
 	type KittyIndex: Parameter + Member + SimpleArithmetic + Bounded + Default + Copy;
+	type Currency: Currency<Self::AccountId>;
 }
 
 #[derive(Encode, Decode)]
@@ -18,6 +19,8 @@ pub struct KittyLinkedItem<T: Trait> {
 	pub prev: Option<T::KittyIndex>,
 	pub next: Option<T::KittyIndex>,
 }
+
+type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Kitties {
@@ -31,7 +34,8 @@ decl_storage! {
 		//获取猫主人
 		pub KittyOwners get(kitty_owner): map T::KittyIndex => Option<T::AccountId>;
 
-		
+		//存取小猫价格
+		pub KittyPrices get(kitty_price): map T::KittyIndex => Option<BalanceOf<T>>
 	}
 }
 
