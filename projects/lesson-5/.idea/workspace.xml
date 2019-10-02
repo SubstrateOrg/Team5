@@ -5,7 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="19af112d-fc90-4a34-84d1-032c543f4195" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/../lesson-4/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../lesson-4/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/runtime/src/kitties.rs" beforeDir="false" afterPath="$PROJECT_DIR$/runtime/src/kitties.rs" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -27,8 +26,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/runtime/src/kitties.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="313">
-              <caret line="199" column="10" selection-start-line="199" selection-start-column="10" selection-end-line="199" selection-end-column="10" />
+            <state relative-caret-position="395">
+              <caret line="200" selection-start-line="200" selection-end-line="200" />
               <folding>
                 <element signature="e#2320#2321#0" expanded="true" />
                 <element signature="e#2360#2361#0" expanded="true" />
@@ -121,6 +120,7 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="aspect.path.notification.shown" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
@@ -165,18 +165,18 @@
       <option name="presentableId" value="Default" />
       <updated>1569761981462</updated>
       <workItem from="1569761982970" duration="3999000" />
-      <workItem from="1569937220501" duration="4409000" />
+      <workItem from="1569937220501" duration="4767000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="8408000" />
+    <option name="totallyTimeSpent" value="8766000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="23" width="1440" height="801" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.15307583" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.15307583" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Designer" order="2" />
       <window_info id="Image Layers" order="3" />
@@ -224,8 +224,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/runtime/src/kitties.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="313">
-          <caret line="199" column="10" selection-start-line="199" selection-start-column="10" selection-end-line="199" selection-end-column="10" />
+        <state relative-caret-position="395">
+          <caret line="200" selection-start-line="200" selection-end-line="200" />
           <folding>
             <element signature="e#2320#2321#0" expanded="true" />
             <element signature="e#2360#2361#0" expanded="true" />
