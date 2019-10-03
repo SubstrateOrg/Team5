@@ -73,6 +73,7 @@ decl_module! {
 			Self::do_transfer(&sender, to, kitty_id);
 		}
 
+		// set price for kitty
 		pub fn pricing(origin, kitty_id: T::KittyIndex, price: T::Balance) {
 			
 			// check msg sender
@@ -80,6 +81,16 @@ decl_module! {
 
 			// call internal pricing method
 			Self::do_pricing(&sender, kitty_id, price);
+		}
+
+		// trading kitty
+		pub fn trade_kitty(orign, kitty_id: T::KittyIndex, offer_price: T::Balance) {
+
+			// check msg sender
+			let sender = ensure_signed(origin)?;
+
+			// call internal pricing method
+			Self::do_trade(&sender, kitty_id, offer_price);
 		}
 	}
 }
@@ -247,6 +258,37 @@ impl<T: Trait> Module<T> {
 
 		// put it(kitty) back
 		<Kitties<T>>::insert(kitty_id,kitty);
+
+		// Done
+		Ok(())
+	}
+
+	fn do_trade(sender: &T::AccountId, kitty_id: T::KittyIndex, offer_price: T::Balance) -> Result {
+		
+		// get kitty ownership
+		let owner = Self::owner_of(kitty_id).ok_or("Kitty has no owner!");
+
+		// check kitty owner is the msg sender
+		ensure!(owner == sender,"Invalid Kitty Owner!");
+
+		// get kitty for modify data
+		let mut kitty = Self::kitty(kitty_id).unwrap();
+
+		// check kitty price
+		ensure!(kitty.price, "Kitty must have a price.");
+
+		// check trading price
+		ensure!(kitty.price == offer_price, "Trading price not right");
+
+		// call internal function to transfer kitty ownership
+		let buyer = sender.clone();
+		Self::do_transfer(&owner,buyer,kitty_id);
+
+		// reset price after trading
+		kitty.price = 0.into();
+
+		// put it(kitty) back
+		<Kitties<T>>::insert(kitty_id, kitty);
 
 		// Done
 		Ok(())
