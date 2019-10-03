@@ -65,9 +65,10 @@ decl_module! {
 		// 使用 OwnedKitties::append 和 OwnedKitties::remove 来修改小猫的主人
 		pub fn transfer(origin, to: T::AccountId, kitty_id: T::KittyIndex){
 
-			//check msg sender
+			// check msg sender
 			let sender = ensure_signed(origin)?;
 
+			// call internal transfer method
 			Self::do_transfer(&sender, to, kitty_id);
 		}
 	}
@@ -160,6 +161,8 @@ impl<T: Trait> Module<T> {
 
 	fn insert_owned_kitty(owner: &T::AccountId, kitty_id: T::KittyIndex) {
 		// 作业：调用 OwnedKitties::append 完成实现
+		<KittyOwner<T>>::insert(kitty_id, owner.clone());
+		<OwnedKitties<T>>::append(owner, kitty_id);
   	}
 
 	fn insert_kitty(owner: &T::AccountId, kitty_id: T::KittyIndex, kitty: Kitty) {
