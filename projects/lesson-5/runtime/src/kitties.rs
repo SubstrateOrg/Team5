@@ -10,7 +10,9 @@ pub trait Trait: system::Trait {
 }
 
 #[derive(Encode, Decode)]
-pub struct Kitty(pub [u8; 16]);
+pub struct Kitty<T: Trait>{
+	pub dna : [u8:16]
+}
 
 #[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq))]
 #[derive(Encode, Decode)]
@@ -21,11 +23,17 @@ pub struct KittyLinkedItem<T: Trait> {
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Kitties {
+
 		/// Stores all the kitties, key is the kitty id / index
-		pub Kitties get(kitty): map T::KittyIndex => Option<Kitty>;
+		pub Kitties get(kitty): map T::KittyIndex => Option<Kitty<T>>;
+
 		/// Stores the total number of kitties. i.e. the next kitty index
 		pub KittiesCount get(kitties_count): T::KittyIndex;
 
+		/// Get kitty owner
+		pub KittyOwner get(owner_of): map T::KittyIndex=> Option<T::AccountId>;
+
+		/// Using linked list to store kitty ownership
 		pub OwnedKitties get(owned_kitties): map (T::AccountId, Option<T::KittyIndex>) => Option<KittyLinkedItem<T>>;
 	}
 }
@@ -55,10 +63,20 @@ decl_module! {
 		// 作业：实现 transfer(origin, to: T::AccountId, kitty_id: T::KittyIndex)
 		// 使用 ensure! 来保证只有主人才有权限调用 transfer
 		// 使用 OwnedKitties::append 和 OwnedKitties::remove 来修改小猫的主人
+		pub fn transfer(origin, to: T::AccountId, kitty_id: T::KittyIndex){
+
+			//check msg sender
+			let sender = ensure_signed(origin)?;
+
+			Self::do_transfer(&sender, to, kitty_id);
+		}
 	}
 }
 
+// add more implement for OwnedKitties Linked List
 impl<T: Trait> OwnedKitties<T> {
+	
+	// return the head of linked list
 	fn read_head(account: &T::AccountId) -> KittyLinkedItem<T> {
  		Self::read(account, None)
  	}
@@ -77,7 +95,7 @@ impl<T: Trait> OwnedKitties<T> {
 	fn write(account: &T::AccountId, key: Option<T::KittyIndex>, item: KittyLinkedItem<T>) {
  		<OwnedKitties<T>>::insert(&(account.clone(), key), item);
  	}
-
+ 
 	pub fn append(account: &T::AccountId, kitty_id: T::KittyIndex) {
 		let head = Self::read_head(account);
 		let new_head = KittyLinkedItem {
@@ -176,6 +194,27 @@ impl<T: Trait> Module<T> {
 
 		Self::insert_kitty(sender, kitty_id, Kitty(new_dna));
 
+		Ok(())
+	}
+
+	//-------------------- borrow account id here, not move it
+	fn do_transfer(sender: &T::AccountId, to: T::AccountId, kitty_id: T::KittyIndex) -> Result{
+		
+		// get kitty ownership
+		let owner = Self::owner_of(kitty_id).ok_or("Kitty has no owner!");
+
+		// check kitty owner is the msg sender
+		ensure!(owner == sender,"Invalid Kitty Owner!");
+
+		// remove the kitty ownership first
+		<OwnedKitties<T>>::insert(&sender, kitty_id);
+
+		// transfer kitty
+		<OwnedKitties<T>>::append(&to, kitty_id);
+		<KittyOwner<T>>::insert(kitty_id, to.clone());
+		
+
+		// Done
 		Ok(())
 	}
 }
