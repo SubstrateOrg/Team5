@@ -1,17 +1,18 @@
-use support::{decl_module, decl_storage, ensure, StorageValue, StorageMap, dispatch::Result, Parameter};
+use support::{traits::Currency,decl_module, decl_storage, ensure, StorageValue, StorageMap, dispatch::Result, Parameter};
 use sr_primitives::traits::{SimpleArithmetic, Bounded, Member};
 use codec::{Encode, Decode};
 use runtime_io::blake2_128;
 use system::ensure_signed;
 use rstd::result;
 
-pub trait Trait: system::Trait {
+pub trait Trait: balances::Trait {
 	type KittyIndex: Parameter + Member + SimpleArithmetic + Bounded + Default + Copy;
 }
 
 #[derive(Encode, Decode)]
 pub struct Kitty<T: Trait>{
-	pub dna : [u8:16]
+	pub dna : [u8:16],
+	pub price : T::Balance,
 }
 
 #[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq))]
@@ -63,13 +64,22 @@ decl_module! {
 		// 作业：实现 transfer(origin, to: T::AccountId, kitty_id: T::KittyIndex)
 		// 使用 ensure! 来保证只有主人才有权限调用 transfer
 		// 使用 OwnedKitties::append 和 OwnedKitties::remove 来修改小猫的主人
-		pub fn transfer(origin, to: T::AccountId, kitty_id: T::KittyIndex){
+		pub fn transfer(origin, to: T::AccountId, kitty_id: T::KittyIndex) {
 
 			// check msg sender
 			let sender = ensure_signed(origin)?;
 
 			// call internal transfer method
 			Self::do_transfer(&sender, to, kitty_id);
+		}
+
+		pub fn pricing(origin, kitty_id: T::KittyIndex, price: T::Balance) {
+			
+			// check msg sender
+			let sender = ensure_signed(origin)?;
+
+			// call internal pricing method
+			Self::do_pricing(&sender, kitty_id, price);
 		}
 	}
 }
@@ -200,7 +210,7 @@ impl<T: Trait> Module<T> {
 		Ok(())
 	}
 
-	//-------------------- borrow account id here, not move it
+	//transfer kitty ownership -- borrow sender account id here, not move it
 	fn do_transfer(sender: &T::AccountId, to: T::AccountId, kitty_id: T::KittyIndex) -> Result{
 		
 		// get kitty ownership
@@ -216,6 +226,27 @@ impl<T: Trait> Module<T> {
 		<OwnedKitties<T>>::append(&to, kitty_id);
 		<KittyOwner<T>>::insert(kitty_id, to.clone());
 		
+
+		// Done
+		Ok(())
+	}
+
+	fn do_pricing(sender: &T::AccountId, kitty_id: T::KittyIndex, price: T::Balance) -> Result {
+		
+		// get kitty ownership
+		let owner = Self::owner_of(kitty_id).ok_or("Kitty has no owner!");
+
+		// check kitty owner is the msg sender
+		ensure!(owner == sender,"Invalid Kitty Owner!");
+
+		// get kitty for modify data
+		let mut kitty = Self::kitty(kitty_id).unwrap();
+
+		// do pricing
+		kitty.price = price;
+
+		// put it(kitty) back
+		<Kitties<T>>::insert(kitty_id,kitty);
 
 		// Done
 		Ok(())
