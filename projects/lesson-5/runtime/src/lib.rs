@@ -261,7 +261,7 @@ impl template::Trait for Runtime {
 
 impl kitties::Trait for Runtime {
 	type KittyIndex = u32;
-	// type Balance = Balance;
+	type Currency = Balances;
 }
 
 construct_runtime!(

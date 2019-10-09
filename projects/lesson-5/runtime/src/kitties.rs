@@ -5,16 +5,20 @@ use runtime_io::blake2_128;
 use system::ensure_signed;
 use rstd::result;
 
-pub trait Trait: balances::Trait {
+pub trait Trait: system::Trait {
 	type KittyIndex: Parameter + Member + SimpleArithmetic + Bounded + Default + Copy;
 	// type Balance: Parameter + Member + SimpleArithmetic + Bounded + Default + Copy;
+	type Currency: Currency<Self::AccountId> ;
+
 }
+
+type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance ;
 
 #[derive(Encode, Decode)]
 // pub struct Kitty(pub [u8; 16]);
 pub struct Kitty<T: Trait> {
 	pub dna : [u8; 16],
-	pub price : T::Balance, 
+	pub price : BalanceOf<T>, 
 }
 
 #[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq))]
@@ -71,11 +75,11 @@ decl_module! {
 		// 使用 ensure! 来保证只有主人才有权限调用 transfer
 		// 使用 OwnedKitties::append 和 OwnedKitties::remove 来修改小猫的主人
 
-		pub fn buy_kitty(origin,  kitty_id: T::KittyIndex, max_price: T::Balance) -> Result{
+		pub fn buy_kitty(origin,  kitty_id: T::KittyIndex, max_price: BalanceOf<T>) -> Result{
 			let sender = ensure_signed(origin)?;
 			Self::do_buy_kitty(&sender, kitty_id, max_price)
 		}
-		pub fn set_price(origin,  kitty_id: T::KittyIndex, price : T::Balance) -> Result{
+		pub fn set_price(origin,  kitty_id: T::KittyIndex, price : BalanceOf<T>) -> Result{
 			let sender = ensure_signed(origin)?;
 			Self::do_set_price(&sender, kitty_id, price)
 
@@ -153,7 +157,7 @@ fn combine_dna(dna1: u8, dna2: u8, selector: u8) -> u8 {
 }
 
 impl<T: Trait> Module<T> {
-	fn do_buy_kitty(sender: &T::AccountId, kitty_id: T::KittyIndex, max_price: T::Balance) -> Result {
+	fn do_buy_kitty(sender: &T::AccountId, kitty_id: T::KittyIndex, max_price: BalanceOf<T>) -> Result {
 
 		ensure!(<Kitties<T>>::exists(kitty_id), "This cat does not exist");
 
@@ -166,7 +170,8 @@ impl<T: Trait> Module<T> {
 		ensure!(!kitty_price.is_zero(), "The cat you want to buy is not for sale");
 		ensure!(kitty_price <= max_price, "The cat you want to buy costs more than your max price");
 
-		<balances::Module<T> as Currency<_>>::transfer(&sender, &owner, kitty_price)?;
+		// <balances::Module<T> as Currency<_>>::transfer(&sender, &owner, kitty_price)?;
+		T::Currency::transfer(&sender, &owner, kitty_price)?;
 
 		Self::do_transfer(&owner, sender.clone(), kitty_id)
 			.expect("`owner` is shown to own the kitty; \
@@ -183,7 +188,7 @@ impl<T: Trait> Module<T> {
 		Ok(())
 	}
 
-	fn do_set_price(sender: &T::AccountId, kitty_id: T::KittyIndex, price : T::Balance) ->Result {
+	fn do_set_price(sender: &T::AccountId, kitty_id: T::KittyIndex, price : BalanceOf<T>) ->Result {
 		ensure!(<Kitties<T>>::exists(kitty_id), "This cat does not exist");
 		let owner = Self::owner_of(kitty_id).ok_or("No owner for this kitty")?;
         ensure!(owner == *sender, "You do not own this cat");
