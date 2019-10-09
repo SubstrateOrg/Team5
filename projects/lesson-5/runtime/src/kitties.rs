@@ -1,4 +1,4 @@
-use support::{decl_module, decl_storage, ensure, StorageValue, StorageMap, dispatch::Result, Parameter};
+use support::{decl_module, decl_storage, ensure, StorageValue, StorageMap, dispatch::Result, Parameter, traits::Currency};
 use sr_primitives::traits::{SimpleArithmetic, Bounded, Member};
 use codec::{Encode, Decode};
 use runtime_io::blake2_128;
@@ -7,6 +7,7 @@ use rstd::result;
 
 pub trait Trait: system::Trait {
 	type KittyIndex: Parameter + Member + SimpleArithmetic + Bounded + Default + Copy;
+	type Currency: Currency<Self::AccountId>;
 }
 
 #[derive(Encode, Decode)]
@@ -19,6 +20,8 @@ pub struct KittyLinkedItem<T: Trait> {
 	pub next: Option<T::KittyIndex>,
 }
 
+type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
+
 decl_storage! {
 	trait Store for Module<T: Trait> as Kitties {
 		/// Stores all the kitties, key is the kitty id / index
@@ -27,6 +30,12 @@ decl_storage! {
 		pub KittiesCount get(kitties_count): T::KittyIndex;
 
 		pub OwnedKitties get(owned_kitties): map (T::AccountId, Option<T::KittyIndex>) => Option<KittyLinkedItem<T>>;
+
+		//获取猫主人
+		pub KittyOwners get(kitty_owner): map T::KittyIndex => Option<T::AccountId>;
+
+		//存取小猫价格
+		pub KittyPrices get(kitty_price): map T::KittyIndex => Option<BalanceOf<T>>
 	}
 }
 
@@ -55,6 +64,15 @@ decl_module! {
 		// 作业：实现 transfer(origin, to: T::AccountId, kitty_id: T::KittyIndex)
 		// 使用 ensure! 来保证只有主人才有权限调用 transfer
 		// 使用 OwnedKitties::append 和 OwnedKitties::remove 来修改小猫的主人
+		pub fn transfer(origin, to: T::AccountId, kitty_id: T::KittyIndex) {
+			let sender = ensure_signed(origin)?;
+
+			ensure!(<OwnedKitties<T>>::exists(&(sender.clone(), Some(kitty_id))), "只有主人才有权限调用 transfer");
+			
+			Self::do_transfer(&sender, &to, kitty_id);
+
+			
+		}
 	}
 }
 
@@ -120,6 +138,7 @@ impl<T: Trait> OwnedKitties<T> {
   			Self::write(account, item.next, new_next);
 		}
 	}
+	
 }
 
 fn combine_dna(dna1: u8, dna2: u8, selector: u8) -> u8 {
@@ -142,12 +161,15 @@ impl<T: Trait> Module<T> {
 
 	fn insert_owned_kitty(owner: &T::AccountId, kitty_id: T::KittyIndex) {
 		// 作业：调用 OwnedKitties::append 完成实现
+		<OwnedKitties<T>>::append(owner, kitty_id);
   	}
 
 	fn insert_kitty(owner: &T::AccountId, kitty_id: T::KittyIndex, kitty: Kitty) {
 		// Create and store kitty
 		<Kitties<T>>::insert(kitty_id, kitty);
 		<KittiesCount<T>>::put(kitty_id + 1.into());
+
+		<KittyOwners<T>>::insert(kitty_id, owner.clone());
 
 		Self::insert_owned_kitty(owner, kitty_id);
 	}
@@ -177,6 +199,12 @@ impl<T: Trait> Module<T> {
 		Self::insert_kitty(sender, kitty_id, Kitty(new_dna));
 
 		Ok(())
+	}
+
+	fn do_transfer(from: &T::AccountId, to: &T::AccountId, kitty_id: T::KittyIndex)  {
+		<OwnedKitties<T>>::remove(&from, kitty_id);
+		<OwnedKitties<T>>::append(&to, kitty_id);
+		<KittyOwners<T>>::insert(kitty_id, to);
 	}
 }
 
