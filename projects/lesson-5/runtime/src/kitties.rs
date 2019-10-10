@@ -18,7 +18,7 @@ type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Trait>::Ac
 // pub struct Kitty(pub [u8; 16]);
 pub struct Kitty<T: Trait> {
 	pub dna : [u8; 16],
-	pub price : BalanceOf<T>, 
+	pub price : Option<BalanceOf<T>>, 
 }
 
 #[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq))]
@@ -52,7 +52,8 @@ decl_module! {
 			// Create and store kitty
 			let kitty = Kitty{
 				dna, 
-				price : 0.into()
+				// price : 0.into()
+				price : None
 			};
 			Self::insert_kitty(&sender, kitty_id, kitty);
 			Ok(())
@@ -167,7 +168,9 @@ impl<T: Trait> Module<T> {
 		let mut kitty = Self::kitty(kitty_id).unwrap();
 
 		let kitty_price = kitty.price;
-		ensure!(!kitty_price.is_zero(), "The cat you want to buy is not for sale");
+		// ensure!(!kitty_price.is_zero(), "The cat you want to buy is not for sale");
+		ensure!(kitty_price.is_some(), "The cat you want to buy is not for sale");
+		let kitty_price = kitty_price.unwrap();
 		ensure!(kitty_price <= max_price, "The cat you want to buy costs more than your max price");
 
 		// <balances::Module<T> as Currency<_>>::transfer(&sender, &owner, kitty_price)?;
@@ -181,7 +184,8 @@ impl<T: Trait> Module<T> {
 			which means transfer cannot cause an overflow; \
 			qed");
 
-		kitty.price = 0.into();
+		// kitty.price = 0.into();
+		kitty.price = None;
 		<Kitties<T>>::insert(kitty_id, kitty);
 
 
@@ -193,7 +197,8 @@ impl<T: Trait> Module<T> {
 		let owner = Self::owner_of(kitty_id).ok_or("No owner for this kitty")?;
         ensure!(owner == *sender, "You do not own this cat");
 		let mut kitty = Self::kitty(kitty_id).unwrap();
-		kitty.price = price;
+		// kitty.price = price;
+		kitty.price = Some(price);
 		<Kitties<T>>::insert(kitty_id, kitty);
 		Ok(())
 
@@ -258,7 +263,8 @@ impl<T: Trait> Module<T> {
 		}
 		let kitty = Kitty{
 			dna :new_dna,
-			price:0.into()
+			// price:0.into()
+			price:None
 		};
 		Self::insert_kitty(sender, kitty_id, kitty);
 
@@ -273,10 +279,12 @@ mod tests {
 
 	use runtime_io::with_externalities;
 	use primitives::{H256, Blake2Hasher};
-	use support::{impl_outer_origin, parameter_types};
+	use support::{impl_outer_origin, parameter_types, assert_ok};
 	use sr_primitives::{traits::{BlakeTwo256, IdentityLookup}, testing::Header};
 	use sr_primitives::weights::Weight;
 	use sr_primitives::Perbill;
+
+	// use support::{assert_err, assert_ok, impl_outer_origin, parameter_types, traits::Get};
 
 	impl_outer_origin! {
 		pub enum Origin for Test {}
@@ -467,10 +475,10 @@ mod tests {
 		with_externalities(&mut new_test_ext(), || {
 			let alice = 0;
 			let bob = 1;
-			kittyModule::create(Origin::signed(alice));
+			assert_ok!(kittyModule::create(Origin::signed(alice)));
 			let kitty_owner = kittyModule::owner_of(0).unwrap();
 			assert_eq!(alice, kitty_owner);
-			kittyModule::transfer(Origin::signed(alice), bob, 0);
+			assert_ok!(kittyModule::transfer(Origin::signed(alice), bob, 0));
 			let kitty_owner = kittyModule::owner_of(0).unwrap();
 			assert_eq!(bob, kitty_owner);
 		});
