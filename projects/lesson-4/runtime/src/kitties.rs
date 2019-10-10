@@ -219,7 +219,7 @@ mod tests {
 
 	#[test]
 	fn test_dna_combine() {
-		with_externalities(&mut new_test_ext(), || {
+		// with_externalities(&mut new_test_ext(), || {
 			// Just a dummy test for the dummy funtion `do_something`
 			// calling the `do_something` function with a value 42
 			// assert_ok!(TestModule::do_something(Origin::signed(1), 42));
@@ -229,6 +229,6 @@ mod tests {
 			let selector:u8 = 0b10101010;
 			assert_eq!(combine_dna(father, mother, selector), 0b11100100) ;
 			
-		});
+		// });
 	}
 }

@@ -292,6 +292,14 @@ mod tests {
 		pub const MaximumBlockWeight: Weight = 1024;
 		pub const MaximumBlockLength: u32 = 2 * 1024;
 		pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
+
+		// params for balances
+		pub const ExistentialDeposit: u128 = 500;
+		pub const TransferFee: u128 = 0;
+		pub const CreationFee: u128 = 0;
+		pub const TransactionBaseFee: u128 = 0;
+		pub const TransactionByteFee: u128 = 1;
+
 	}
 	impl system::Trait for Test {
 		type Origin = Origin;
@@ -311,10 +319,29 @@ mod tests {
 		type AvailableBlockRatio = AvailableBlockRatio;
 		type Version = ();
 	}
+	impl balances::Trait for Test {
+        type Balance = u128;
+        type OnFreeBalanceZero = ();
+        type OnNewAccount = ();
+        type Event = ();
+        type TransactionPayment = ();
+        type TransferPayment = ();
+        type DustRemoval = ();
+        type ExistentialDeposit = ExistentialDeposit;
+        type TransferFee = TransferFee;
+        type CreationFee = CreationFee;
+        type TransactionBaseFee = TransactionBaseFee;
+        type TransactionByteFee = TransactionByteFee;
+        type WeightToFee = ();
+    }
+
+
 	impl Trait for Test {
 		type KittyIndex = u32;
+		type Currency = balances::Module<Self>;
 	}
 	type OwnedKittiesTest = OwnedKitties<Test>;
+	type kittyModule = super::Module<Test>;
 
 	// This function basically just builds a genesis storage key/value store according to
 	// our desired mockup.
@@ -437,6 +464,16 @@ mod tests {
 	#[test]
  	fn test_transfer() {
 		//  OwnedKittiesTest::create()
+		with_externalities(&mut new_test_ext(), || {
+			let alice = 0;
+			let bob = 1;
+			kittyModule::create(Origin::signed(alice));
+			let kitty_owner = kittyModule::owner_of(0).unwrap();
+			assert_eq!(alice, kitty_owner);
+			kittyModule::transfer(Origin::signed(alice), bob, 0);
+			let kitty_owner = kittyModule::owner_of(0).unwrap();
+			assert_eq!(bob, kitty_owner);
+		});
 	}
 
 }
