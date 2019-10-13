@@ -61,13 +61,8 @@ pub type Hash = primitives::H256;
 /// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
 
-//TODO -001 - 配置修改名称和.rs的文件名称是一致的；
 /// Used for the module template in `./template.rs`
 mod template;
-//TODO -001 - 配置修改名称和.rs的文件名称是一致的；
-/// Used for the module template in `./substratekitties.rs`
-// Add this line
-mod substratekitties;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -256,14 +251,10 @@ impl sudo::Trait for Runtime {
 	type Proposal = Call;
 }
 
-//TODO -002 需要修改的配置
 /// Used for the module template in `./template.rs`
 impl template::Trait for Runtime {
 	type Event = Event;
 }
-
-// Add this line
-impl substratekitties::Trait for Runtime {}
 
 construct_runtime!(
 	pub enum Runtime where
@@ -278,13 +269,8 @@ construct_runtime!(
 		Indices: indices::{default, Config<T>},
 		Balances: balances::{default, Error},
 		Sudo: sudo,
-//TODO -003 需要修改的配置信息
 		// Used for the module template in `./template.rs`
 		TemplateModule: template::{Module, Call, Storage, Event<T>},
-
-//TODO -003 需要修改的配置信息
-		// Add this line
-        SubstratekittiesModule: substratekitties::{Module, Call, Storage},
 	}
 );
 
